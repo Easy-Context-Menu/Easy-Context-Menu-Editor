@@ -1,0 +1,222 @@
+[workspace]
+members = ["ctxmenu", "ctxmenu-handler"]
+resolver = "3"
+
+[workspace.package]
+# Semantic versioning, read as an application rather than as a library:
+# MAJOR when a stored format or a command-line contract breaks (entries.json,
+# favourites.json, settings.json, the backup manifest, a subcommand), MINOR for
+# a new ability, PATCH for a fix. 1.0.0 on 2026-08-15, when the v1 acceptance
+# list was complete and the build plan had nothing left in it. 1.0.1 the same
+# day: seven commits of polish on tabs that already existed — program icons and
+# tree, a working Explorer button, file pickers in both forms — no new
+# subcommand and no stored format touched. 1.1.0 on 2026-08-16: the services
+# tab, which reads an OpenAPI description and makes favourites from it, plus a
+# services.json beside the other stored files — a new ability, and one that
+# older versions simply ignore. 1.2.0 on 2026-08-16, the same day: a queued job
+# is now followed to its result, which turned the services tab from working in
+# two clicks out of six into working in six, plus --lang and --window on the
+# command line. New abilities; nothing stored changed shape, and a favourite
+# written by 1.1.0 still loads. 1.3.0 on 2026-08-20: --service and --new open
+# a state that used to need a mouse click, the console speaks English where it
+# only spoke German, and a favourite reports through a Windows notification
+# instead of a modal window -- ten selected files used to mean ten stacked
+# dialogs. New abilities and a changed channel, but nothing stored changed
+# shape. What is new on disk is one shortcut in the Start menu, which is what
+# makes Windows draw the notification at all, and the program writes it again
+# by itself if the exe moves. 1.3.1 on 2026-08-20: the first version actually
+# published, and a patch because nothing about the program changed -- a test
+# asserted that the host's imageres.dll had a drawn icon at position zero,
+# which is true here and false on the GitHub runner, so 1.3.0 could not be
+# built by the release workflow at all. The binary is the same program.
+# 1.3.2 the same day, and for the same shape of reason one layer further out:
+# publishing 1.3.1 built the binary, zipped it and checksummed it, then
+# refused to attach any of it, because the release workflow compared the
+# expected file names in ordinal order against a list PowerShell had sorted
+# the way the culture does. A release workflow runs from the commit its tag
+# names, so the repair could not reach the tag that needed it. Again the same
+# program: nothing here changed but the workflow beside it.
+# 1.4.0 on 2026-08-20: the program updates itself. The pieces for it were
+# written in August and never connected to anything -- what was missing was a
+# release to check against, and, more importantly, an answer to the question
+# the old update.rs raised and declined to answer: what happens if the
+# repository account is taken over. The answer is a signature over
+# checksums.txt with a key that does not live in that account, verified against
+# a public half compiled into this binary. A new ability, and nothing stored
+# changed shape; what is new on disk is one field in settings.json that an
+# older version ignores, and two files that exist for seconds during an update.
+# Older releases carry no signature and are therefore never offered -- which
+# only matters in one direction, since they are all older than this.
+# 1.4.1 on 2026-08-20: a patch in the plainest sense -- the program does the
+# same things, and one of them now does them without writing through a raw
+# pointer. Code scanning read `icons/extract.rs` and reported two accesses
+# through a pointer it could not prove valid. Neither was a defect:
+# `CreateDIBSection` writes the buffer address through an out parameter the
+# analysis cannot follow, so all it ever saw was the `null_mut()` the pointer
+# was initialised with. But the argument for why that is safe lived in a
+# comment and a null check, and it lives in the type now -- `DibBits` holds a
+# `NonNull` and a length, and the two draw passes reach the pixels as slices
+# whose borrows are narrower than the bindings they replace. Beside it the
+# German README caught up with the English one: seven statements that were no
+# longer true, ten numbers that disagreed with the code or with themselves, an
+# entire section, and the ten screenshots it never had. Nothing stored changed
+# shape, no subcommand moved, and a binary built from this behaves like 1.4.0
+# -- which is the whole claim a patch makes.
+# 1.5.0 on 2026-08-20: a minor, because the program can do things it could
+# not. The new Windows 11 menu is no longer only switched off wholesale: its
+# packaged entries appear in the existing views, and hiding one writes the
+# per-user blocked list instead of LegacyDisable. The program's own entries
+# -- favourites and service tools included -- reach the upper menu through an
+# IExplorerCommand handler the executable carries inside itself and registers
+# on request (`ctxmenu handler`, or the checkbox in the header). Services and
+# favourites gained an icon field, and an icon given as a web address is
+# fetched once into a local `.ico`. Everything stored still reads back:
+# entries.json, favourites.json and services.json only grew optional fields
+# an older version ignores.
+# 1.5.1 on 2026-08-21: a patch, because the handler from 1.5.0 asked the wrong
+# witness. `is_installed` read one key under `PackagedCom`, which the
+# deployment stack leaves behind when a registration goes away -- so the
+# checkbox claimed the package was registered while the upper menu showed
+# nothing, and switching it off ran into the same stale key and snapped back.
+# Measured on a Windows 11 VM on 2026-08-21: `Get-AppxPackage ctxmenu.Menu`
+# found nothing while `ctxmenu.Menu_1.0.0.0_x64__0fw22dw1vr2nw` still stood in
+# the key, and the AppXDeploymentServer log named the moment Windows itself
+# removed the package (07:04:46, `RemoveForUserProfileDeletion`) six hours
+# after a registration nobody had touched since. The question now goes to
+# `PackageManager`, the stale key is cleared when it disagrees, removing no
+# longer asks for rights it does not need, and the DLL stops claiming it can
+# never be unloaded. A second fault with the same symptom went with it: an
+# extension typed without its dot was normalised on the way to the registry
+# and stored raw in entries.json, so `png` built the right key and a record
+# the handler could not match -- the entry showed in the classic menu and
+# never in the new one. Both sides now come from one normalisation, and the
+# DLL reads either form so that records already on disk work. Nothing stored
+# changed shape and no subcommand moved.
+# 1.6.0 on 2026-08-21: a minor, because the program knows services it did not
+# know before. Twenty-one of them ship inside the binary as a JSON file rather
+# than as code, so adding one is a pull request on a text file; the services
+# tab shows them as a catalogue with their logos, grouped, and one click fills
+# in every field but the key. A ShareX `.sxcu` file can be read in as well, and
+# what such a file holds that this program cannot do ends the import with a
+# sentence naming that thing. Five limits went with it: an upload endpoint now
+# takes `{name}`, `{stem}` and `{ext}` and nothing else, which is what a WebDAV
+# or object-storage address needs; a result behind a key can be fetched, but
+# only where it stays on the host the file went to; an address can be built
+# around a field of the answer or around the file's own SHA-256, which is how a
+# service that checks files names its page; a converted file may carry the
+# extension of what came back rather than of what went out; and a header value
+# typed as `user:key` becomes the Basic line curl would have built.
+#
+# One caveat this claim does not cover. `favourites.json` gained optional
+# fields an older version ignores -- `from`, `extension` -- but a favourite
+# whose result reads `"from": "built"` names a value 1.5.1 has never heard of,
+# and that one file will not read there. Forwards is safe: everything 1.5.1
+# wrote reads here unchanged.
+#
+# 1.6.1 on 2026-09-09: a patch. Nothing in the program changed. What moved
+# are dependencies: `read-fonts` 0.43.0 to 0.43.1 in the binary, and in the
+# site `fast-uri`, `next` and `sharp`, each to the version that closes an
+# advisory Dependabot had opened against the one before. `favourites.json`
+# reads and writes as under 1.6.0.
+#
+# 1.6.2 on 2026-09-09: a patch. Restoring a backup retries an import that
+# `reg.exe` answered with 0 and no key, the way the export has retried a lost
+# write since August; one such import held up the release run of 1.6.1. The
+# ImgBB logo is the square favicon instead of a word mark, and the catalogue
+# test refuses a logo that is not square. `favourites.json` reads and writes
+# as under 1.6.0.
+version = "1.6.2"
+edition = "2024"
+rust-version = "1.95"
+# MIT, chosen by the author. Every dependency is MIT or MIT/Apache-2.0, so
+# nothing here forced the decision either way — see docs/THIRD-PARTY-NOTICES.md.
+license = "MIT"
+
+# Kept in one place, so that the IExplorerCommand DLL that comes later can be
+# put beside this crate without the versions drifting apart.
+[workspace.dependencies]
+# Both renderers, chosen at run time. `glow` is the small, fast one and stays
+# the first choice; `wgpu` is the one that works where there is no OpenGL —
+# a Hyper-V guest, an RDP session, a machine that has never seen a graphics
+# driver. Measured in a Windows 11 guest on 2026-08-16: DirectX 12 feature
+# level 12_1 present, OpenGL absent, and the program refused to start with
+# "egui_glow requires opengl 2.0+".
+eframe = { version = "0.36.1", default-features = false, features = [
+    "default_fonts",
+    "glow",
+    "wgpu",
+] }
+egui = "0.36.1"
+# Without the "image" feature: the icon extraction builds its ColorImage itself
+# and loads it through ctx.load_texture, so an image crate is not needed.
+egui_extras = { version = "0.36.1", default-features = false }
+raw-window-handle = "0.6"
+windows-registry = "0.6.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+thiserror = "2"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
+dirs = "6"
+rustc-hash = "2"
+# Reads `AppxManifest.xml`, the only XML this program ever touches. Read-only,
+# no dependencies of its own, and it keeps the namespaces apart — the manifest
+# spells the same element `desktop4:`, `desktop5:` or `desktop10:` depending on
+# which Windows version the package targets, so matching on prefixes by hand
+# would miss packages rather than fail loudly.
+roxmltree = "0.21"
+
+[workspace.dependencies.windows]
+version = "0.62.2"
+features = [
+    # WinRT, for the toast the `--favourite` result is reported with. The two
+    # go together: a toast is an `XmlDocument` before it is anything else.
+    "UI_Notifications",
+    "Data_Xml_Dom",
+    # WinRT again, and this time it is the only honest answer available. The
+    # question "is the handler package registered for this user" was read off
+    # `PackagedCom` until 1.5.1, and that key survives a registration by hours
+    # (measured 2026-08-21). `PackageManager` asks the deployment stack itself.
+    # Foundation_Collections comes with it: the result is an `IIterable`.
+    "Management_Deployment",
+    "Foundation_Collections",
+    "ApplicationModel",
+
+    "Win32_Foundation",
+    "Win32_Globalization",             # GetUserDefaultUILanguage
+    # The Start menu shortcut that makes a toast appear on screen rather than
+    # only in the Action Center: IShellLinkW and IPersistFile write the file,
+    # IPropertyStore puts the AppUserModelID on it, and a PROPVARIANT is how
+    # that one property travels. See ctxmenu/src/startmenu.rs.
+    "Win32_System_Com",                # CoInitializeEx, CoCreateInstance, IPersistFile
+    "Win32_System_Com_StructuredStorage", # PROPVARIANT
+    "Win32_System_Variant",            # VT_LPWSTR
+    "Win32_UI_Shell_PropertiesSystem", # IPropertyStore
+    "Win32_Graphics_Dwm",              # dark title bar
+    "Win32_Graphics_Gdi",              # icon extraction: DIB, DC, bitmaps
+    "Win32_Networking_WinHttp",        # web tools: send a file to a URL
+    "Win32_System_DataExchange",       # clipboard: Open/Empty/Set/CloseClipboard
+    "Win32_System_Memory",             # GlobalAlloc/Lock/Unlock for the CF_HDROP block
+    "Win32_UI_Shell",                  # SHLoadIndirectString, SHDefExtractIconW
+    "Win32_UI_Controls_Dialogs",       # GetOpenFileNameW: pick a program or an icon file
+    "Win32_UI_WindowsAndMessaging",    # HICON, ICONINFO, DrawIconEx, SetWindowPos
+    "Win32_Security",                  # token elevation check
+    # CNG, for the signature over a release's checksums.txt. The RSA arithmetic
+    # is the operating system's; ctxmenu/src/update/signature.rs only parses the
+    # PEM and builds the key blob. See the note there on why none of that is
+    # written out by hand.
+    "Win32_Security_Cryptography",
+    "Win32_Storage_FileSystem",        # version resource: FileDescription
+    "Win32_System_Console",
+    "Win32_System_Registry",
+    "Win32_System_Environment",
+    "Win32_System_SystemServices",     # LANG_GERMAN
+    "Win32_System_Threading",          # GetGuiResources, for the GDI leak test
+]
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
